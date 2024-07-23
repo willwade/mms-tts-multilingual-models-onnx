@@ -13,7 +13,7 @@ from vits.models import SynthesizerTrn
 
 STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
-SHERPA_ONNX_EXECUTABLE = "/home/ubuntu/mms-tts-multilingual-models-onnx/sherpa-onnx/build/bin/sherpa-onnx-offline-tts"  # Update this path
+SHERPA_ONNX_EXECUTABLE = "/home/ubuntu/sherpa-onnx/build/bin/sherpa-onnx-offline-tts"  # Update this path
 VITS_MMS_SCRIPT = "/home/ubuntu/mms-tts-multilingual-models-onnx/vits-mms.py"  # Update this path
 
 def main():
