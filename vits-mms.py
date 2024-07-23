@@ -2,13 +2,13 @@
 
 import collections
 import os
+import sys
 from typing import Any, Dict
 
 import onnx
 import torch
 from vits import commons, utils
 from vits.models import SynthesizerTrn
-
 
 class OnnxModel(torch.nn.Module):
     def __init__(self, model: SynthesizerTrn):
@@ -31,7 +31,6 @@ class OnnxModel(torch.nn.Module):
             noise_scale_w=noise_scale_w,
         )[0]
 
-
 def add_meta_data(filename: str, meta_data: Dict[str, Any]):
     """Add meta data to an ONNX model. It is changed in-place.
 
@@ -49,15 +48,13 @@ def add_meta_data(filename: str, meta_data: Dict[str, Any]):
 
     onnx.save(model, filename)
 
-
 def load_vocab():
     return [
         x.replace("\n", "") for x in open("vocab.txt", encoding="utf-8").readlines()
     ]
 
-
 @torch.no_grad()
-def main():
+def main(output_dir):
     hps = utils.get_hparams_from_file("config.json")
     is_uroman = hps.data.training_files.split(".")[-1] == "uroman"
     if is_uroman:
@@ -77,7 +74,8 @@ def main():
 
     print("generate tokens.txt")
 
-    with open("tokens.txt", "w", encoding="utf-8") as f:
+    tokens_path = os.path.join(output_dir, "tokens.txt")
+    with open(tokens_path, "w", encoding="utf-8") as f:
         for idx, token in enumerate(symbols):
             f.write(f"{token} {idx}\n")
 
@@ -112,7 +110,7 @@ def main():
 
     opset_version = 13
 
-    filename = "model.onnx"
+    filename = os.path.join(output_dir, "model.onnx")
 
     torch.onnx.export(
         model,
@@ -146,5 +144,9 @@ def main():
     print("meta_data", meta_data)
     add_meta_data(filename=filename, meta_data=meta_data)
 
-
-main()
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python vits-mms.py <output_dir>")
+        sys.exit(1)
+    output_dir = sys.argv[1]
+    main(output_dir)

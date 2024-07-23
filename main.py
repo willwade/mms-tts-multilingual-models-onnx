@@ -79,9 +79,13 @@ def generate_model_files(iso_code: str):
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS:{os.getenv('PYTHONPATH', '')}"
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS/vits:{os.getenv('PYTHONPATH', '')}"
         os.environ["lang"] = iso_code
-        result = subprocess.run(["python3", "vits-mms.py"], cwd=os.getcwd())  # Ensure script runs from the main directory
+        result = subprocess.run(["python3", "vits-mms.py", tmp_dir], cwd=os.getcwd())  # Pass tmp_dir as argument
         if result.returncode != 0:
             raise RuntimeError(f"Failed to generate model files for {iso_code}")
+        
+        # Check if model.onnx was created
+        if not os.path.isfile(f"{tmp_dir}/model.onnx"):
+            raise FileNotFoundError(f"Model file not found: {tmp_dir}/model.onnx")
     except Exception as e:
         raise RuntimeError(f"Failed to generate model files for {iso_code}: {e}")
 
