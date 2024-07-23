@@ -48,19 +48,19 @@ def add_meta_data(filename: str, meta_data: Dict[str, Any]):
 
     onnx.save(model, filename)
 
-def load_vocab():
+def load_vocab(vocab_path):
     return [
-        x.replace("\n", "") for x in open("vocab.txt", encoding="utf-8").readlines()
+        x.replace("\n", "") for x in open(vocab_path, encoding="utf-8").readlines()
     ]
 
 @torch.no_grad()
-def main(output_dir):
-    hps = utils.get_hparams_from_file("config.json")
+def main(config_dir, output_dir):
+    hps = utils.get_hparams_from_file(os.path.join(config_dir, "config.json"))
     is_uroman = hps.data.training_files.split(".")[-1] == "uroman"
     if is_uroman:
         raise ValueError("We don't support uroman!")
 
-    symbols = load_vocab()
+    symbols = load_vocab(os.path.join(config_dir, "vocab.txt"))
 
     # Now generate tokens.txt
     all_upper_tokens = [i.upper() for i in symbols]
@@ -96,7 +96,7 @@ def main(output_dir):
     net_g.cpu()
     _ = net_g.eval()
 
-    _ = utils.load_checkpoint("G_100000.pth", net_g, None)
+    _ = utils.load_checkpoint(os.path.join(config_dir, "G_100000.pth"), net_g, None)
 
     model = OnnxModel(net_g)
 
@@ -145,8 +145,9 @@ def main(output_dir):
     add_meta_data(filename=filename, meta_data=meta_data)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python vits-mms.py <output_dir>")
+    if len(sys.argv) != 3:
+        print("Usage: python vits-mms.py <config_dir> <output_dir>")
         sys.exit(1)
-    output_dir = sys.argv[1]
-    main(output_dir)
+    config_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    main(config_dir, output_dir)
