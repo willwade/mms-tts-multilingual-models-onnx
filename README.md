@@ -3,6 +3,10 @@
 
 ## Setup
 
+1. Create a repository on Hugging Face (you can do this via the Hugging Face website or CLI).
+2. Generate an API token from your Hugging Face account settings.
+
+
 ```bash
 git clone https://huggingface.co/spaces/mms-meta/MMS
 export PYTHONPATH=$PWD/MMS:$PYTHONPATH
@@ -20,6 +24,8 @@ cp build/lib*/vits/monotonic_align/core*.so .
 
 sed -i.bak s/.monotonic_align.core/.core/g ./__init__.py
 popd
+
+export HF_TOKEN=your_huggingface_token
 ```
 
 ## Run
