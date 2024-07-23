@@ -39,8 +39,10 @@ def parse_support_list(filepath: str) -> Dict[str, str]:
     with open(filepath, "r", encoding="utf-8") as file:
         for line in file.readlines():
             if line.strip():
-                iso_code, language_name = line.split()
-                iso_codes[iso_code.strip()] = language_name.strip()
+                parts = line.split(maxsplit=1)
+                if len(parts) == 2:
+                    iso_code, language_name = parts
+                    iso_codes[iso_code.strip()] = language_name.strip()
     return iso_codes
 
 def load_state() -> set:

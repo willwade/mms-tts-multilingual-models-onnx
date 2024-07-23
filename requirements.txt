@@ -3,3 +3,4 @@ onnx
 huggingface_hub
 numpy
 requests
+Cython
