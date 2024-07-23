@@ -33,6 +33,11 @@ def main():
             update_state(iso_code)
         except Exception as e:
             print(f"Error processing {iso_code}: {e}")
+        finally:
+            # Clean up the temporary directory
+            tmp_dir = f"tmp/{iso_code}"
+            if os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir)
 
 def parse_support_list(filepath: str) -> Dict[str, str]:
     iso_codes = {}
@@ -60,27 +65,31 @@ def update_state(iso_code: str):
 def download_model_files(iso_code: str):
     base_url = f"https://huggingface.co/facebook/mms-tts/resolve/main/models/{iso_code}"
     files = ["G_100000.pth", "config.json", "vocab.txt"]
+    tmp_dir = f"tmp/{iso_code}"
+    os.makedirs(tmp_dir, exist_ok=True)
     for file in files:
-        result = subprocess.run(["wget", "-q", f"{base_url}/{file}"])
+        result = subprocess.run(["wget", "-q", f"{base_url}/{file}", "-O", f"{tmp_dir}/{file}"])
         if result.returncode != 0:
             raise FileNotFoundError(f"Failed to download {file} for {iso_code}")
 
 def generate_model_files(iso_code: str):
     try:
-        os.environ["PYTHONPATH"] = f"$PWD/MMS:$PYTHONPATH"
-        os.environ["PYTHONPATH"] = f"$PWD/MMS/vits:$PYTHONPATH"
+        tmp_dir = f"tmp/{iso_code}"
+        os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS:{os.getenv('PYTHONPATH', '')}"
+        os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS/vits:{os.getenv('PYTHONPATH', '')}"
         os.environ["lang"] = iso_code
-        result = subprocess.run(["python3", "vits-mms.py"])
+        result = subprocess.run(["python3", "vits-mms.py"], cwd=tmp_dir)
         if result.returncode != 0:
             raise RuntimeError(f"Failed to generate model files for {iso_code}")
     except Exception as e:
         raise RuntimeError(f"Failed to generate model files for {iso_code}: {e}")
 
 def save_model_files(iso_code: str):
+    tmp_dir = f"tmp/{iso_code}"
     output_dir = f"models/{iso_code}"
     os.makedirs(output_dir, exist_ok=True)
-    subprocess.run(["mv", "model.onnx", f"{output_dir}/"])
-    subprocess.run(["mv", "tokens.txt", f"{output_dir}/"])
+    shutil.move(f"{tmp_dir}/model.onnx", f"{output_dir}/model.onnx")
+    shutil.move(f"{tmp_dir}/tokens.txt", f"{output_dir}/tokens.txt")
 
 def validate_model(iso_code: str):
     output_dir = f"models/{iso_code}"
@@ -119,10 +128,6 @@ def push_to_huggingface(iso_code: str):
 
 if __name__ == "__main__":
     try:
-        # Ensure the PYTHONPATH includes the MMS directory
-        os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS:{os.getenv('PYTHONPATH', '')}"
-        os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS/vits:{os.getenv('PYTHONPATH', '')}"
-        
         main()
     except Exception as e:
         print(f"An error occurred: {e}")

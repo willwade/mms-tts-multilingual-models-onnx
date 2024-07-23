@@ -25,6 +25,7 @@ cp build/lib*/vits/monotonic_align/core*.so .
 sed -i.bak s/.monotonic_align.core/.core/g ./__init__.py
 popd
 
+
 export HF_TOKEN=your_huggingface_token
 ```
 
