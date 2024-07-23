@@ -10,6 +10,7 @@ import onnx
 from huggingface_hub import HfApi, HfFolder
 from vits import commons, utils
 from vits.models import SynthesizerTrn
+from googletrans import Translator
 
 STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
@@ -31,7 +32,11 @@ def main():
             download_model_files(iso_code)
             generate_model_files(iso_code)
             save_model_files(iso_code)
-            validate_model(iso_code)
+            translated_sentence = translate_test_sentence("hello everyone this is a test sentence", iso_code)
+            if translated_sentence:
+                validate_model(iso_code, translated_sentence)
+            else:
+                print(f"Skipping validation for {iso_code} due to translation failure.")
             push_to_huggingface(iso_code)
             update_state(iso_code)
         except Exception as e:
@@ -98,7 +103,16 @@ def save_model_files(iso_code: str):
     shutil.move(f"{tmp_dir}/model.onnx", f"{output_dir}/model.onnx")
     shutil.move(f"{tmp_dir}/tokens.txt", f"{output_dir}/tokens.txt")
 
-def validate_model(iso_code: str):
+def translate_test_sentence(sentence: str, target_language: str) -> str:
+    translator = Translator()
+    try:
+        translation = translator.translate(sentence, dest=target_language)
+        return translation.text
+    except Exception as e:
+        print(f"Failed to translate test sentence to {target_language}: {e}")
+        return None
+
+def validate_model(iso_code: str, translated_sentence: str):
     output_dir = f"models/{iso_code}"
     model_path = f"{output_dir}/model.onnx"
     tokens_path = f"{output_dir}/tokens.txt"
@@ -112,7 +126,7 @@ def validate_model(iso_code: str):
         f"--vits-tokens={tokens_path}",
         "--debug=1",
         f"--output-filename={wav_output}",
-        "How are you doing today? This is a text-to-speech application using models from facebook with next generation Kaldi"
+        translated_sentence
     ])
     if result.returncode != 0:
         raise RuntimeError(f"Validation failed for {iso_code}")

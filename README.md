@@ -6,7 +6,7 @@
 1. Create a repository on Hugging Face (you can do this via the Hugging Face website or CLI).
 2. Generate an API token from your Hugging Face account settings.
 
-3. Build regular Sherpa-ONNX - this is for a GPU machine
+3. Build regular Sherpa-ONNX - this is for a GPU machine - NB: YOU NEED TO INSTALL CUDA FIRST. Follow kinda the instructions at https://k2-fsa.github.io/k2/installation/cuda-cudnn.html
 
 ```bash
 cd ~
