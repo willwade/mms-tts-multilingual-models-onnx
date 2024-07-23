@@ -15,6 +15,7 @@ from deep_translator.constants import GOOGLE_LANGUAGES_TO_CODES
 import langcodes
 
 
+SUPPORT_LIST_FILE = "support_list.txt"
 STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
 SHERPA_ONNX_EXECUTABLE = "/home/ubuntu/sherpa-onnx/build/bin/sherpa-onnx-offline-tts"  # Update this path
