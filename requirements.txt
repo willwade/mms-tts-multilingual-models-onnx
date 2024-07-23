@@ -4,4 +4,5 @@ huggingface_hub
 numpy==1.24.3
 requests
 Cython
-googletrans
+deep-translator
+langcodes

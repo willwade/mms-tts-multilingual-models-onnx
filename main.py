@@ -10,58 +10,71 @@ import onnx
 from huggingface_hub import HfApi, HfFolder
 from vits import commons, utils
 from vits.models import SynthesizerTrn
-from googletrans import Translator, LANGUAGES
+from deep_translator import GoogleTranslator
+from deep_translator.constants import GOOGLE_LANGUAGES_TO_CODES
+import langcodes
+
 
 STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
 SHERPA_ONNX_EXECUTABLE = "/home/ubuntu/sherpa-onnx/build/bin/sherpa-onnx-offline-tts"  # Update this path
 VITS_MMS_SCRIPT = "/home/ubuntu/mms-tts-multilingual-models-onnx/vits-mms.py"  # Update this path
+TEST_SENTENCE = "hello everyone this is a test sentence"
+RETRY_LIMIT = 3
+RETRY_DELAY = 2  # seconds
 
-def main():
-    iso_codes = parse_support_list("support_list.txt")
-    processed_iso_codes = load_state()
-
-    for iso_code, language_name in iso_codes.items():
-        if iso_code in processed_iso_codes:
-            print(f"Skipping {language_name} ({iso_code}), already processed.")
-            continue
-
-        print(f"Processing {language_name} ({iso_code})")
-
-        try:
-            download_model_files(iso_code)
-            generate_model_files(iso_code)
-            save_model_files(iso_code)
-            if is_language_supported(language_name):
-                translated_sentence = translate_test_sentence("hello everyone this is a test sentence", language_name)
-                if translated_sentence:
-                    validate_model(iso_code, translated_sentence)
-                else:
-                    print(f"Skipping validation for {iso_code} due to translation failure.")
-            else:
-                print(f"Skipping translation and validation for {iso_code} as the language is not supported.")
-            push_to_huggingface(iso_code)
-            update_state(iso_code)
-        except Exception as e:
-            print(f"Error processing {iso_code}: {e}")
-        finally:
-            # Clean up the temporary directory
-            tmp_dir = f"tmp/{iso_code}"
-            if os.path.exists(tmp_dir):
-                shutil.rmtree(tmp_dir)
-
-def parse_support_list(filepath: str) -> Dict[str, str]:
+def parse_support_list(filepath: str):
     iso_codes = {}
-    with open(filepath, "r", encoding="utf-8") as file:
-        # Skip the first line (header)
-        next(file)
-        for line in file.readlines():
-            if line.strip():
-                parts = line.split(maxsplit=1)
-                if len(parts) == 2:
-                    iso_code, language_name = parts
-                    iso_codes[iso_code.strip()] = language_name.strip()
+    try:
+        with open(filepath, "r", encoding="utf-8") as file:
+            print("Reading support list file...")
+            # Read the first line (header)
+            header = next(file).strip()
+            print(f"Header: {header}")
+            # Process the rest of the lines
+            for line in file.readlines():
+                line = line.strip()
+                print(f"Processing line: {line}")
+                if line:
+                    parts = re.split(r'\s{2,}', line)  # Split by two or more spaces
+                    if len(parts) == 2:
+                        iso_code, language_name = parts
+                        iso_codes[iso_code.strip()] = language_name.strip()
+                        print(f"Added ISO code: {iso_code.strip()}, Language: {language_name.strip()}")
+                    else:
+                        print(f"Line format incorrect: {line}")
+    except Exception as e:
+        print(f"Error reading support list file: {e}")
     return iso_codes
+
+def get_language_code(language_name: str):
+    try:
+        # Attempt to find the ISO 639-1 language code using langcodes
+        language_code = langcodes.find(language_name).language
+        print(f"Found language code for '{language_name}': {language_code}")
+        return language_code
+    except LookupError:
+        print(f"Language '{language_name}' not found in langcodes database.")
+        return None
+
+def is_language_supported(language_code: str) -> bool:
+    supported = language_code in GOOGLE_LANGUAGES_TO_CODES.values()
+    print(f"Is language code '{language_code}' supported? {'Yes' if supported else 'No'}")
+    return supported
+
+def translate_test_sentence(sentence: str, target_language: str, retries=RETRY_LIMIT) -> str:
+    for attempt in range(retries):
+        try:
+            translation = GoogleTranslator(source='auto', target=target_language).translate(sentence)
+            return translation
+        except Exception as e:
+            print(f"Failed to translate test sentence to {target_language} on attempt {attempt + 1}: {e}")
+            if attempt < retries - 1:
+                print(f"Retrying in {RETRY_DELAY} seconds...")
+                time.sleep(RETRY_DELAY)
+            else:
+                print(f"Exceeded retry limit for {target_language}.")
+                return None
 
 def load_state() -> set:
     if os.path.isfile(STATE_FILE):
@@ -106,19 +119,6 @@ def save_model_files(iso_code: str):
     shutil.move(f"{tmp_dir}/model.onnx", f"{output_dir}/model.onnx")
     shutil.move(f"{tmp_dir}/tokens.txt", f"{output_dir}/tokens.txt")
 
-def is_language_supported(language_name: str) -> bool:
-    # Check if the language name is in the googletrans LANGUAGES dictionary
-    return language_name.lower() in [lang.lower() for lang in LANGUAGES.values()]
-
-def translate_test_sentence(sentence: str, target_language: str) -> str:
-    translator = Translator()
-    try:
-        translation = translator.translate(sentence, dest=target_language)
-        return translation.text
-    except Exception as e:
-        print(f"Failed to translate test sentence to {target_language}: {e}")
-        return None
-
 def validate_model(iso_code: str, translated_sentence: str):
     output_dir = f"models/{iso_code}"
     model_path = f"{output_dir}/model.onnx"
@@ -156,6 +156,40 @@ def push_to_huggingface(iso_code: str):
             repo_id=HF_REPO_ID,
             token=hf_token
         )
+
+def main():
+    iso_codes = parse_support_list(SUPPORT_LIST_FILE)
+    processed_iso_codes = load_state()
+
+    for iso_code, language_name in iso_codes.items():
+        if iso_code in processed_iso_codes:
+            print(f"Skipping {language_name} ({iso_code}), already processed.")
+            continue
+
+        print(f"Processing {language_name} ({iso_code})")
+
+        try:
+            download_model_files(iso_code)
+            generate_model_files(iso_code)
+            save_model_files(iso_code)
+            language_code = get_language_code(language_name)
+            if language_code and is_language_supported(language_code):
+                translated_sentence = translate_test_sentence(TEST_SENTENCE, language_code)
+                if translated_sentence:
+                    validate_model(iso_code, translated_sentence)
+                else:
+                    print(f"Skipping validation for {iso_code} due to translation failure.")
+            else:
+                print(f"Skipping translation and validation for {iso_code} as the language is not supported.")
+            push_to_huggingface(iso_code)
+            update_state(iso_code)
+        except Exception as e:
+            print(f"Error processing {iso_code}: {e}")
+        finally:
+            # Clean up the temporary directory
+            tmp_dir = f"tmp/{iso_code}"
+            if os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir)
 
 if __name__ == "__main__":
     try:
