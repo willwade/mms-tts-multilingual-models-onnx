@@ -1,0 +1,5 @@
+torch
+onnx
+huggingface_hub
+numpy
+requests
