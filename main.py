@@ -14,7 +14,7 @@ STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
 
 def main():
-    iso_codes = parse_support_list("/mnt/data/support_list.txt")
+    iso_codes = parse_support_list("support_list.txt")
     processed_iso_codes = load_state()
 
     for iso_code, language_name in iso_codes.items():
