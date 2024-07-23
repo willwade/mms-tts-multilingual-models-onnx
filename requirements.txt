@@ -1,4 +1,4 @@
-torch
+scipy
 onnx
 huggingface_hub
 numpy==1.24.3

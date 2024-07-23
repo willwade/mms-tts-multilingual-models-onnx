@@ -102,7 +102,7 @@ def validate_model(iso_code: str):
     tokens_path = f"{output_dir}/tokens.txt"
     wav_output = f"{output_dir}/sample.wav"
     result = subprocess.run([
-        "./build/bin/sherpa-onnx-offline-tts",
+        "~/sherpa-onnx/build/bin/sherpa-onnx-offline-tts",
         f"--vits-model={model_path}",
         f"--vits-tokens={tokens_path}",
         "--debug=1",

@@ -6,8 +6,28 @@
 1. Create a repository on Hugging Face (you can do this via the Hugging Face website or CLI).
 2. Generate an API token from your Hugging Face account settings.
 
+3. Build regular Sherpa-ONNX - this is for a GPU machine
 
 ```bash
+cd ~
+sudo apt-get install alsa-utils libasound2-dev
+git clone https://github.com/k2-fsa/sherpa-onnx
+cd sherpa-onnx
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DSHERPA_ONNX_ENABLE_GPU=ON ..
+make -j6
+```
+
+4. Get ready for our code. 
+
+```bash
+cd ~
+git clone https://github.com/willwade/mms-tts-multilingual-models-onnx
+cd mms-tts-multilingual-models-onnx
+pip install -qq torch==1.13.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+pip install -r requirements.txt
+
 git clone https://huggingface.co/spaces/mms-meta/MMS
 export PYTHONPATH=$PWD/MMS:$PYTHONPATH
 export PYTHONPATH=$PWD/MMS/vits:$PYTHONPATH
