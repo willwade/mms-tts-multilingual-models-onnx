@@ -13,6 +13,7 @@ from vits.models import SynthesizerTrn
 
 STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
+SHERPA_ONNX_EXECUTABLE = "/home/ubuntu/mms-tts-multilingual-models-onnx/sherpa-onnx/build/bin/sherpa-onnx-offline-tts"  # Update this path
 
 def main():
     iso_codes = parse_support_list("support_list.txt")
@@ -79,7 +80,7 @@ def generate_model_files(iso_code: str):
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS:{os.getenv('PYTHONPATH', '')}"
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS/vits:{os.getenv('PYTHONPATH', '')}"
         os.environ["lang"] = iso_code
-        result = subprocess.run(["python3", "vits-mms.py", tmp_dir], cwd=os.getcwd())  # Pass tmp_dir as argument
+        result = subprocess.run(["python3", "vits-mms.py", tmp_dir, tmp_dir], cwd=tmp_dir)  # Pass tmp_dir as argument for config and output
         if result.returncode != 0:
             raise RuntimeError(f"Failed to generate model files for {iso_code}")
         
@@ -101,8 +102,11 @@ def validate_model(iso_code: str):
     model_path = f"{output_dir}/model.onnx"
     tokens_path = f"{output_dir}/tokens.txt"
     wav_output = f"{output_dir}/sample.wav"
+    if not os.path.isfile(SHERPA_ONNX_EXECUTABLE):
+        raise FileNotFoundError(f"Sherpa-ONNX executable not found: {SHERPA_ONNX_EXECUTABLE}")
+    
     result = subprocess.run([
-        "~/sherpa-onnx/build/bin/sherpa-onnx-offline-tts",
+        SHERPA_ONNX_EXECUTABLE,
         f"--vits-model={model_path}",
         f"--vits-tokens={tokens_path}",
         "--debug=1",
