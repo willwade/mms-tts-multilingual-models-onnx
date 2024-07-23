@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import shutil
 import collections
 import torch
 from typing import Any, Dict
@@ -78,7 +79,7 @@ def generate_model_files(iso_code: str):
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS:{os.getenv('PYTHONPATH', '')}"
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS/vits:{os.getenv('PYTHONPATH', '')}"
         os.environ["lang"] = iso_code
-        result = subprocess.run(["python3", "vits-mms.py"], cwd=tmp_dir)
+        result = subprocess.run(["python3", "vits-mms.py"], cwd=os.getcwd())  # Ensure script runs from the main directory
         if result.returncode != 0:
             raise RuntimeError(f"Failed to generate model files for {iso_code}")
     except Exception as e:
