@@ -14,7 +14,7 @@ STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
 
 def main():
-    iso_codes = parse_support_list("support_list.txt")
+    iso_codes = parse_support_list("/mnt/data/support_list.txt")
     processed_iso_codes = load_state()
 
     for iso_code, language_name in iso_codes.items():
@@ -37,6 +37,8 @@ def main():
 def parse_support_list(filepath: str) -> Dict[str, str]:
     iso_codes = {}
     with open(filepath, "r", encoding="utf-8") as file:
+        # Skip the first line (header)
+        next(file)
         for line in file.readlines():
             if line.strip():
                 parts = line.split(maxsplit=1)
@@ -64,12 +66,15 @@ def download_model_files(iso_code: str):
             raise FileNotFoundError(f"Failed to download {file} for {iso_code}")
 
 def generate_model_files(iso_code: str):
-    os.environ["PYTHONPATH"] = f"$PWD/MMS:$PYTHONPATH"
-    os.environ["PYTHONPATH"] = f"$PWD/MMS/vits:$PYTHONPATH"
-    os.environ["lang"] = iso_code
-    result = subprocess.run(["python3", "vits-mms.py"])
-    if result.returncode != 0:
-        raise RuntimeError(f"Failed to generate model files for {iso_code}")
+    try:
+        os.environ["PYTHONPATH"] = f"$PWD/MMS:$PYTHONPATH"
+        os.environ["PYTHONPATH"] = f"$PWD/MMS/vits:$PYTHONPATH"
+        os.environ["lang"] = iso_code
+        result = subprocess.run(["python3", "vits-mms.py"])
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to generate model files for {iso_code}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to generate model files for {iso_code}: {e}")
 
 def save_model_files(iso_code: str):
     output_dir = f"models/{iso_code}"
@@ -113,4 +118,11 @@ def push_to_huggingface(iso_code: str):
         )
 
 if __name__ == "__main__":
-    main()
+    try:
+        # Ensure the PYTHONPATH includes the MMS directory
+        os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS:{os.getenv('PYTHONPATH', '')}"
+        os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS/vits:{os.getenv('PYTHONPATH', '')}"
+        
+        main()
+    except Exception as e:
+        print(f"An error occurred: {e}")
