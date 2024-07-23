@@ -62,7 +62,7 @@ def load_state() -> set:
     return set()
 
 def update_state(iso_code: str):
-    with open(STATE_FILE, "a") as f):
+    with open(STATE_FILE, "a") as f:
         f.write(f"{iso_code}\n")
 
 def download_model_files(iso_code: str):
