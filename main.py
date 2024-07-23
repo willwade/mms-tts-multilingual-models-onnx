@@ -14,9 +14,10 @@ from vits.models import SynthesizerTrn
 STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
 SHERPA_ONNX_EXECUTABLE = "/home/ubuntu/mms-tts-multilingual-models-onnx/sherpa-onnx/build/bin/sherpa-onnx-offline-tts"  # Update this path
+VITS_MMS_SCRIPT = "/home/ubuntu/mms-tts-multilingual-models-onnx/vits-mms.py"  # Update this path
 
 def main():
-    iso_codes = parse_support_list("support_list.txt")
+    iso_codes = parse_support_list("/mnt/data/support_list.txt")
     processed_iso_codes = load_state()
 
     for iso_code, language_name in iso_codes.items():
@@ -61,7 +62,7 @@ def load_state() -> set:
     return set()
 
 def update_state(iso_code: str):
-    with open(STATE_FILE, "a") as f:
+    with open(STATE_FILE, "a") as f):
         f.write(f"{iso_code}\n")
 
 def download_model_files(iso_code: str):
@@ -80,7 +81,7 @@ def generate_model_files(iso_code: str):
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS:{os.getenv('PYTHONPATH', '')}"
         os.environ["PYTHONPATH"] = f"{os.getcwd()}/MMS/vits:{os.getenv('PYTHONPATH', '')}"
         os.environ["lang"] = iso_code
-        result = subprocess.run(["python3", "vits-mms.py", tmp_dir, tmp_dir], cwd=tmp_dir)  # Pass tmp_dir as argument for config and output
+        result = subprocess.run(["python3", VITS_MMS_SCRIPT, tmp_dir, tmp_dir])  # Pass tmp_dir as argument for config and output
         if result.returncode != 0:
             raise RuntimeError(f"Failed to generate model files for {iso_code}")
         
