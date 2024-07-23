@@ -13,7 +13,7 @@ from vits.models import SynthesizerTrn
 from deep_translator import GoogleTranslator
 from deep_translator.constants import GOOGLE_LANGUAGES_TO_CODES
 import langcodes
-
+import re
 
 SUPPORT_LIST_FILE = "support_list.txt"
 STATE_FILE = "state.txt"
