@@ -1,6 +1,6 @@
 # Convert MMS to Sherpa-ONNX models and push to huggingface
 
-** See converted onnx models at https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/tree/main **
+**See converted onnx models at https://huggingface.co/willwade/mms-tts-multilingual-models-onnx/tree/main **
 
 ## Setup
 
