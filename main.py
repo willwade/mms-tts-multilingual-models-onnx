@@ -10,7 +10,7 @@ import onnx
 from huggingface_hub import HfApi, HfFolder
 from vits import commons, utils
 from vits.models import SynthesizerTrn
-from googletrans import Translator
+from googletrans import Translator, LANGUAGES
 
 STATE_FILE = "state.txt"
 HF_REPO_ID = "willwade/mms-tts-multilingual-models-onnx"  # Replace with your Hugging Face repo ID
@@ -32,11 +32,14 @@ def main():
             download_model_files(iso_code)
             generate_model_files(iso_code)
             save_model_files(iso_code)
-            translated_sentence = translate_test_sentence("hello everyone this is a test sentence", iso_code)
-            if translated_sentence:
-                validate_model(iso_code, translated_sentence)
+            if is_language_supported(language_name):
+                translated_sentence = translate_test_sentence("hello everyone this is a test sentence", language_name)
+                if translated_sentence:
+                    validate_model(iso_code, translated_sentence)
+                else:
+                    print(f"Skipping validation for {iso_code} due to translation failure.")
             else:
-                print(f"Skipping validation for {iso_code} due to translation failure.")
+                print(f"Skipping translation and validation for {iso_code} as the language is not supported.")
             push_to_huggingface(iso_code)
             update_state(iso_code)
         except Exception as e:
@@ -102,6 +105,10 @@ def save_model_files(iso_code: str):
     os.makedirs(output_dir, exist_ok=True)
     shutil.move(f"{tmp_dir}/model.onnx", f"{output_dir}/model.onnx")
     shutil.move(f"{tmp_dir}/tokens.txt", f"{output_dir}/tokens.txt")
+
+def is_language_supported(language_name: str) -> bool:
+    # Check if the language name is in the googletrans LANGUAGES dictionary
+    return language_name.lower() in [lang.lower() for lang in LANGUAGES.values()]
 
 def translate_test_sentence(sentence: str, target_language: str) -> str:
     translator = Translator()
