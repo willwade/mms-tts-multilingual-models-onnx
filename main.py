@@ -168,6 +168,15 @@ def push_to_huggingface(iso_code: str):
             token=hf_token
         )
 
+def setup_git_lfs(local_dir):
+    # Initialize Git LFS
+    subprocess.run(["git", "lfs", "install"], cwd=local_dir)
+    # Track specific file types with Git LFS
+    subprocess.run(["git", "lfs", "track", "*.onnx"], cwd=local_dir)
+    subprocess.run(["git", "add", ".gitattributes"], cwd=local_dir)
+    subprocess.run(["git", "commit", "-m", "Track large files with Git LFS"], cwd=local_dir)
+    subprocess.run(["git", "push"], cwd=local_dir)
+
 def commit_all_models_to_huggingface(local_dir="models"):
     """
     Commits all models in the local directory to the specified Hugging Face repository.
@@ -183,10 +192,28 @@ def commit_all_models_to_huggingface(local_dir="models"):
     if not hf_token:
         raise EnvironmentError("HF_TOKEN environment variable not set")
 
-    # Initialize the repository object
-    repo = Repository(local_dir, clone_from=repo_id, use_auth_token=hf_token)
+    # Create a temporary directory for the repository
+    temp_repo_dir = "temp_repo"
+    if os.path.exists(temp_repo_dir):
+        shutil.rmtree(temp_repo_dir)
+    os.makedirs(temp_repo_dir)
 
-    # Add all files in the local directory to the repository
+    # Clone the repository into the temporary directory
+    repo = Repository(temp_repo_dir, clone_from=repo_id, use_auth_token=hf_token)
+
+    # Set up Git LFS in the repository
+    setup_git_lfs(temp_repo_dir)
+
+    # Copy all files from local_dir to the cloned repository directory
+    for item in os.listdir(local_dir):
+        s = os.path.join(local_dir, item)
+        d = os.path.join(temp_repo_dir, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d)
+        else:
+            shutil.copy2(s, d)
+
+    # Add all files in the temporary repository directory to the repository
     repo.git_add("*")
 
     # Commit the changes
@@ -195,7 +222,11 @@ def commit_all_models_to_huggingface(local_dir="models"):
     # Push the changes to the Hugging Face repository
     repo.git_push()
 
+    # Clean up the temporary directory
+    shutil.rmtree(temp_repo_dir)
+
     print(f"All models from {local_dir} have been committed and pushed to {repo_id}")
+
 
 def main():
     iso_codes = parse_support_list(SUPPORT_LIST_FILE)
