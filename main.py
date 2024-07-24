@@ -88,6 +88,14 @@ def update_state(iso_code: str):
     with open(STATE_FILE, "a") as f:
         f.write(f"{iso_code}\n")
 
+def clean_state(state: set, models_dir: str):
+    existing_dirs = {d for d in os.listdir(models_dir) if os.path.isdir(os.path.join(models_dir, d))}
+    cleaned_state = state.intersection(existing_dirs)
+    with open(STATE_FILE, "w") as f:
+        for iso_code in cleaned_state:
+            f.write(f"{iso_code}\n")
+    return cleaned_state
+
 def download_model_files(iso_code: str):
     base_url = f"https://huggingface.co/facebook/mms-tts/resolve/main/models/{iso_code}"
     files = ["G_100000.pth", "config.json", "vocab.txt"]
@@ -192,6 +200,9 @@ def commit_all_models_to_huggingface(local_dir="models"):
 def main():
     iso_codes = parse_support_list(SUPPORT_LIST_FILE)
     processed_iso_codes = load_state()
+
+    # Clean the state list by removing entries without corresponding directories
+    processed_iso_codes = clean_state(processed_iso_codes, "models")
 
     for iso_code, language_name in iso_codes.items():
         if iso_code in processed_iso_codes:
