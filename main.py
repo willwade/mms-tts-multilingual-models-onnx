@@ -177,12 +177,13 @@ def setup_git_lfs(local_dir):
     subprocess.run(["git", "commit", "-m", "Track large files with Git LFS"], cwd=local_dir)
     subprocess.run(["git", "push"], cwd=local_dir)
 
-def commit_all_models_to_huggingface(local_dir="models"):
+def commit_all_models_to_huggingface(local_dir="models", temp_repo_dir="temp_repo"):
     """
     Commits all models in the local directory to the specified Hugging Face repository.
 
     Args:
         local_dir (str): The local directory containing the models to commit. Defaults to "models".
+        temp_repo_dir (str): The temporary directory used for the Git repository.
 
     Returns:
         None
@@ -192,28 +193,14 @@ def commit_all_models_to_huggingface(local_dir="models"):
     if not hf_token:
         raise EnvironmentError("HF_TOKEN environment variable not set")
 
-    # Create a temporary directory for the repository
-    temp_repo_dir = "temp_repo"
-    if os.path.exists(temp_repo_dir):
-        shutil.rmtree(temp_repo_dir)
-    os.makedirs(temp_repo_dir)
+    if not os.path.exists(temp_repo_dir):
+        raise FileNotFoundError(f"Temporary repository directory {temp_repo_dir} does not exist")
 
-    # Clone the repository into the temporary directory
-    repo = Repository(temp_repo_dir, clone_from=repo_id, use_auth_token=hf_token)
-
-    # Set up Git LFS in the repository
-    setup_git_lfs(temp_repo_dir)
-
-    # Copy all files from local_dir to the cloned repository directory
-    for item in os.listdir(local_dir):
-        s = os.path.join(local_dir, item)
-        d = os.path.join(temp_repo_dir, item)
-        if os.path.isdir(s):
-            shutil.copytree(s, d)
-        else:
-            shutil.copy2(s, d)
+    # Use rsync to copy files from local_dir to temp_repo_dir, ignoring existing files
+    subprocess.run(["rsync", "-av", "--ignore-existing", f"{local_dir}/", f"{temp_repo_dir}/"])
 
     # Add all files in the temporary repository directory to the repository
+    repo = Repository(temp_repo_dir, clone_from=repo_id, use_auth_token=hf_token)
     repo.git_add("*")
 
     # Commit the changes
@@ -221,9 +208,6 @@ def commit_all_models_to_huggingface(local_dir="models"):
 
     # Push the changes to the Hugging Face repository
     repo.git_push()
-
-    # Clean up the temporary directory
-    shutil.rmtree(temp_repo_dir)
 
     print(f"All models from {local_dir} have been committed and pushed to {repo_id}")
 
