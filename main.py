@@ -120,6 +120,7 @@ def save_model_files(iso_code: str):
     os.makedirs(output_dir, exist_ok=True)
     shutil.move(f"{tmp_dir}/model.onnx", f"{output_dir}/model.onnx")
     shutil.move(f"{tmp_dir}/tokens.txt", f"{output_dir}/tokens.txt")
+    print(f"saved {tmp_dir}/model.onnx to {output_dir}/model.onnx")
 
 def validate_model(iso_code: str, translated_sentence: str):
     output_dir = f"models/{iso_code}"
