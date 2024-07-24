@@ -7,13 +7,14 @@ import collections
 import torch
 from typing import Any, Dict
 import onnx
-from huggingface_hub import HfApi, HfFolder
+from huggingface_hub import HfApi, HfFolder, Repository
 from vits import commons, utils
 from vits.models import SynthesizerTrn
 from deep_translator import GoogleTranslator
 from deep_translator.constants import GOOGLE_LANGUAGES_TO_CODES
 import langcodes
 import re
+import time
 
 SUPPORT_LIST_FILE = "support_list.txt"
 STATE_FILE = "state.txt"
@@ -158,6 +159,35 @@ def push_to_huggingface(iso_code: str):
             token=hf_token
         )
 
+def commit_all_models_to_huggingface(local_dir="models"):
+    """
+    Commits all models in the local directory to the specified Hugging Face repository.
+
+    Args:
+        local_dir (str): The local directory containing the models to commit. Defaults to "models".
+
+    Returns:
+        None
+    """
+    repo_id = HF_REPO_ID
+    hf_token = os.getenv("HF_TOKEN")
+    if not hf_token:
+        raise EnvironmentError("HF_TOKEN environment variable not set")
+
+    # Initialize the repository object
+    repo = Repository(local_dir, clone_from=repo_id, use_auth_token=hf_token)
+
+    # Add all files in the local directory to the repository
+    repo.git_add("*")
+
+    # Commit the changes
+    repo.git_commit("Add all models from local directory")
+
+    # Push the changes to the Hugging Face repository
+    repo.git_push()
+
+    print(f"All models from {local_dir} have been committed and pushed to {repo_id}")
+
 def main():
     iso_codes = parse_support_list(SUPPORT_LIST_FILE)
     processed_iso_codes = load_state()
@@ -182,7 +212,7 @@ def main():
                     print(f"Skipping validation for {iso_code} due to translation failure.")
             else:
                 print(f"Skipping translation and validation for {iso_code} as the language is not supported.")
-            push_to_huggingface(iso_code)
+            # push_to_huggingface(iso_code)
             update_state(iso_code)
         except Exception as e:
             print(f"Error processing {iso_code}: {e}")
@@ -191,6 +221,8 @@ def main():
             tmp_dir = f"tmp/{iso_code}"
             if os.path.exists(tmp_dir):
                 shutil.rmtree(tmp_dir)
+
+    commit_all_models_to_huggingface()
 
 if __name__ == "__main__":
     try:
